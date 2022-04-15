@@ -199,7 +199,13 @@ Dicas:
 - Uma forma de resolver este exercício inclui utilizar recursão.
 """
 def evolucoes_proximas(nome):
-    raise Exception("Não implementado.")
+    lista =[]
+    if nome == "": raise PokemonNaoExisteException()
+    respRequest = requests.get(f"{site_pokeapi}/api/v2/pokemon-species/{nome}/", timeout=limite)
+    respUrl = respRequest.json()
+    evolutionChain = respUrl["evolution_chain"]["url"]
+    respEvolucaoProxima = evolutionChain.json()
+    respEvolucaoProxima["evolves_to"]
 
 """
 8. A medida que ganham pontos de experiência, os pokémons sobem de nível.

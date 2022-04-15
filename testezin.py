@@ -1,6 +1,7 @@
 
 
 
+from unicodedata import name
 import requests
 from pokemon import Pokemon, PokemonNaoExisteException, numero_do_pokemon
 site_treinador = "http://127.0.0.1:9000"
@@ -9,19 +10,37 @@ limite = (4, 12)
 
 
 
-def evolucao_anterior(nome):
-    if nome == "": raise Pokemon.PokemonNaoExisteException()
-    idPokemon = numero_do_pokemon(nome)
-    respRequest = requests.get(f"{site_pokeapi}/api/v2/pokemon-species/{idPokemon}/", timeout=limite)
-    if  respRequest.status_code != 200: raise PokemonNaoExisteException()
-    returnNamePokemon = respRequest.json()
-    if returnNamePokemon["evolves_from_species"] is None:
-        return print(None)
-    else:
-        return print(returnNamePokemon["evolves_from_species"]["name"])
+def evolucoes_proximas(nome):
+    lista =[]
+    if nome == "": raise PokemonNaoExisteException()
+
+    respRequest = requests.get(f"{site_pokeapi}/api/v2/pokemon-species/{nome}/", timeout=limite)
+
+    respUrl = respRequest.json()
+
+    evolutionChain = respUrl["evolution_chain"]["url"]
+
+    requestEvolve =  requests.get(evolutionChain)
+
+    
+    jsonEvolucao = requestEvolve.json()
+
+    if jsonEvolucao['chain']["species"]["name"] == name:
+        lista.append(jsonEvolucao["chain"]["evolves_to"][0]["species"]["name"])
+
+    evolucao = jsonEvolucao["chain"]["evolves_to"][0]["species"]["name"]
+    if nome == evolucao:
+        evolus = jsonEvolucao["chain"]["evolves_to"][0]['evolves_to']
+        print(evolus)
+        for evolu in evolus:  
+            x = evolus[evolu["species"]["name"]]
+            print(x)
+            lista.append()        
+
+    return print(lista)   
 
 
 
 
 
-evolucao_anterior("togepi")
+evolucoes_proximas("ivysaur")
