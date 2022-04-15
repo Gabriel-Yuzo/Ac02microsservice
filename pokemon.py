@@ -1,4 +1,5 @@
-import json
+
+from contextlib import nullcontext
 import requests
 from dataclasses import dataclass
 from enum import Enum, auto
@@ -83,7 +84,7 @@ Observações:
 - Se o pokémon não existir, lance uma PokemonNaoExisteException.
 """
 def nome_do_pokemon(numero):
-    if numero < 1: raise PokemonNaoExisteException()
+    if numero < 1 or numero > 898: raise PokemonNaoExisteException()
     requestPokemon = requests.get(f"{site_pokeapi}/api/v2/pokemon/{numero}", timeout = limite)
     if  requestPokemon.status_code != 200: raise PokemonNaoExisteException()
     returnNamePokemon = requestPokemon.json()
@@ -98,12 +99,9 @@ Observações:
 def numero_do_pokemon(nome):
     if nome == "": raise PokemonNaoExisteException()
     respRequest = requests.get(f"{site_pokeapi}/api/v2/pokemon/{nome}/", timeout=limite)
+    if  respRequest.status_code != 200: raise PokemonNaoExisteException()
     idPokemon = respRequest.json()
     return idPokemon["id"]
-
-        
-
-
 
 """
 3. Dado o nome de um pokémon, qual é o nome da cor (em inglês) predominante dele?
@@ -130,7 +128,13 @@ Dicas:
 - Faça uma invocação à função color_of_pokemon acima.
 """
 def cor_do_pokemon(nome):
-    raise Exception("Não implementado.")
+    dicionario = {"brown": "marrom", "yellow": "amarelo", "blue": "azul", 
+    "pink": "rosa", "gray":"cinza", "purple":"roxo", "red":"vermelho", "white":"branco", "green":"verde", "black":"preto"}
+    nomeCorIngles = color_of_pokemon(nome)
+    return dicionario[nomeCorIngles]
+            
+    
+
 
 """
 5. Dado o nome de um pokémon, quais são os tipos no qual ele se enquadra?
@@ -142,8 +146,19 @@ Observações:
 - Não se esqueça de verificar os casos onde o pokémon procurado não exista.
 """
 def tipos_do_pokemon(nome):
-    raise Exception("Não implementado.")
-
+    dicionarioType = {"normal":"normal", "fighting":"lutador", "flying": "voador","poison":"veneno" ,"ground":"terra",
+    "rock":"pedra", "bug": "inseto", "ghost":"fantasma", "steel":"aço", "fire": "fogo", "water":"água", "grass":"grama", "electric":"elétrico",
+    "psychic":"psíquico", "ice":"gelo", "dragon":"dragão","dark":"noturno", "fairy":"fada" }
+    lista =[]
+    if nome == "": raise PokemonNaoExisteException()
+    respRequest = requests.get(f"{site_pokeapi}/api/v2/pokemon/{nome}/", timeout=limite)
+    if  respRequest.status_code != 200: raise PokemonNaoExisteException()
+    typesPoke = respRequest.json()
+    types = typesPoke["types"]
+    for tipos in types:
+        lista.append(dicionarioType[tipos["type"]["name"]])
+    return tuple(lista) 
+    
 """
 6. Dado o nome de um pokémon, liste de qual pokémon ele evoluiu.
 Por exemplo, evolucao_anterior('venusaur') == 'ivysaur'
@@ -153,7 +168,16 @@ Observações:
 - Não se esqueça de verificar os casos onde o pokémon procurado não exista.
 """
 def evolucao_anterior(nome):
-    raise Exception("Não implementado.")
+    if nome == "": raise PokemonNaoExisteException()
+    idPokemon = numero_do_pokemon(nome)
+    respRequest = requests.get(f"{site_pokeapi}/api/v2/pokemon-species/{idPokemon}/", timeout=limite)
+    if  respRequest.status_code != 200: raise PokemonNaoExisteException()
+    returnNamePokemon = respRequest.json()
+    if returnNamePokemon["evolves_from_species"] is None:
+        return None
+    else:
+        return returnNamePokemon["evolves_from_species"]["name"]
+
 
 """
 7. Dado o nome de um pokémon, liste para quais pokémons ele pode evoluiur.
