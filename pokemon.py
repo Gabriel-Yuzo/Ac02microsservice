@@ -1,5 +1,6 @@
 
 from contextlib import nullcontext
+from tkinter import E, N
 import requests
 from dataclasses import dataclass
 from enum import Enum, auto
@@ -84,7 +85,7 @@ Observações:
 - Se o pokémon não existir, lance uma PokemonNaoExisteException.
 """
 def nome_do_pokemon(numero):
-    if numero < 1 or numero > 898: raise PokemonNaoExisteException()
+    if numero < 1 or numero > 850: raise PokemonNaoExisteException()
     requestPokemon = requests.get(f"{site_pokeapi}/api/v2/pokemon/{numero}", timeout = limite)
     if  requestPokemon.status_code != 200: raise PokemonNaoExisteException()
     returnNamePokemon = requestPokemon.json()
@@ -199,13 +200,40 @@ Dicas:
 - Uma forma de resolver este exercício inclui utilizar recursão.
 """
 def evolucoes_proximas(nome):
-    lista =[]
+    listaEvolucoesDosPokemons =[]
     if nome == "": raise PokemonNaoExisteException()
-    respRequest = requests.get(f"{site_pokeapi}/api/v2/pokemon-species/{nome}/", timeout=limite)
-    respUrl = respRequest.json()
-    evolutionChain = respUrl["evolution_chain"]["url"]
-    respEvolucaoProxima = evolutionChain.json()
-    respEvolucaoProxima["evolves_to"]
+
+    createRequest = requests.get(f"{site_pokeapi}/api/v2/pokemon-species/{nome}/", timeout=limite)
+
+    if  createRequest.status_code != 200: raise PokemonNaoExisteException()
+
+    urlJson = createRequest.json()
+
+    jsonUrlEvolution = urlJson["evolution_chain"]["url"]
+
+    getEvolutionJson =  requests.get(jsonUrlEvolution)
+
+    
+    jsonEvolution = getEvolutionJson.json()
+    verificacaoDeVazio = jsonEvolution["chain"]["evolves_to"]
+    if verificacaoDeVazio == []:
+            return listaEvolucoesDosPokemons
+    
+    listaUnicaEvolucao = jsonEvolution["chain"]["evolves_to"]
+    unicaEvolucao = jsonEvolution['chain']['species']['name']
+
+    if nome == unicaEvolucao:
+        for evolus in listaUnicaEvolucao:
+            namePokemon = evolus["species"]["name"]
+            listaEvolucoesDosPokemons.append(namePokemon)
+
+    for evolucoesSimples in listaUnicaEvolucao:
+        namePokemon = evolucoesSimples["species"]["name"]
+        if nome == namePokemon:
+            for evolucoesComplexas in evolucoesSimples['evolves_to']:
+                listaEvolucoesDosPokemons.append(evolucoesComplexas['species']['name'])
+
+    return listaEvolucoesDosPokemons   
 
 """
 8. A medida que ganham pontos de experiência, os pokémons sobem de nível.
@@ -220,7 +248,31 @@ Observações:
 - Não realize os cálculos diretamente nesta função implementando nela alguma fórmula matemática. Utilize a API para fazer os cálculos.
 """
 def nivel_do_pokemon(nome, experiencia):
-    raise Exception("Não implementado.")
+    createRequest = requests.get(f"{site_pokeapi}/api/v2/pokemon-species/{nome}/", timeout=limite)
+
+    urlJson = createRequest.json()
+
+    jsonUrlLevel = urlJson["growth_rate"]["url"]
+
+    getLevelJson =  requests.get(jsonUrlLevel)
+
+    jsonLevel = getLevelJson.json()
+    levels = jsonLevel['levels']
+ 
+    for i in levels:
+        count = i['experience']
+        if experiencia > count:
+            continue
+        elif experiencia == 0:
+            return i['level']
+        elif experiencia == count:
+            return i['level']
+        elif experiencia < count:
+            return i['level'] 
+        if experiencia < 1: raise ValueError
+'   '
+
+
 
 """
 Até agora, temos representado as espécies de pokemóns apenas como uma string, no entanto podemos representá-los com uma classe.
@@ -239,14 +291,34 @@ class EspeciePokemon:
     """
     @staticmethod
     def por_nome(nome):
-        raise Exception("Não implementado.")
+        if nome == "": raise PokemonNaoExisteException()
+        respRequest = requests.get(f"{site_pokeapi}/api/v2/pokemon-species/{nome}", timeout=limite)
+        if respRequest.status_code != 200: raise PokemonNaoExisteException()
+        j = respRequest.json()
+        nomePokemon = j['name']
+        nomeCor = cor_do_pokemon(nomePokemon)
+        evoluiuDe = evolucao_anterior(nomePokemon)
+        evolucaoProxima = evolucoes_proximas(nomePokemon)
+        EspeciePoke = EspeciePokemon(nomePokemon, nomeCor, evoluiuDe, evolucaoProxima)
+
+        return EspeciePoke
 
 """
 10. Dado um nome de treinador, cadastre-o na API de treinador.
 Retorne True se um treinador com esse nome foi criado e False em caso contrário (já existia).
 """
 def cadastrar_treinador(nome):
-    raise Exception("Não implementado.")
+    if nome == "": raise TreinadorNaoCadastradoException
+    url = f"http://127.0.0.1:9000/treinador/{nome}"
+    url2 = f"http://127.0.0.1:9000/treinador"
+    request = requests.put(url)
+    if request.status_code != 202 or request.status_code != 303: raise TreinadorNaoCadastradoException
+    requestGet = requests.get(url2)
+    nomeTreinador = requestGet.json()
+    if nome in nomeTreinador:
+        return True
+    else:
+        False
 
 """
 Vamos precisar desta classe logo abaixo.

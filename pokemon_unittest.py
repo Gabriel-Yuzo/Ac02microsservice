@@ -4,7 +4,7 @@ from pokemon import *
 
 parar_no_primeiro_erro = True
 
-ultimo_pokemon = 898
+ultimo_pokemon = 850
 
 from functools import wraps
 

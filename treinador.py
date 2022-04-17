@@ -126,7 +126,7 @@ def int_positivo_ou_zero(valor):
 def str_nao_vazio(valor):
     return type(valor) is str and valor != ''
 
-status = {"closed": True}
+status = {"closed": False}
 
 # ROTAS DO FLASK DAQUI PARA BAIXO.
 
