@@ -1,9 +1,12 @@
 
 from contextlib import nullcontext
+from random import triangular
 from tkinter import E, N
 import requests
 from dataclasses import dataclass
 from enum import Enum, auto
+
+from treinador import to_dict
 
 """
 Instruções para TODOS os exercícios/funções abaixo:
@@ -250,26 +253,24 @@ Observações:
 def nivel_do_pokemon(nome, experiencia):
     createRequest = requests.get(f"{site_pokeapi}/api/v2/pokemon-species/{nome}/", timeout=limite)
 
+    if createRequest.status_code != 200: raise PokemonNaoExisteException()
+
     urlJson = createRequest.json()
 
     jsonUrlLevel = urlJson["growth_rate"]["url"]
 
-    getLevelJson =  requests.get(jsonUrlLevel)
+    getLevelJson =  requests.get(jsonUrlLevel, timeout=limite)
 
     jsonLevel = getLevelJson.json()
-    levels = jsonLevel['levels']
- 
-    for i in levels:
-        count = i['experience']
-        if experiencia > count:
-            continue
-        elif experiencia == 0:
-            return i['level']
-        elif experiencia == count:
-            return i['level']
-        elif experiencia < count:
-            return i['level'] 
-        if experiencia < 1: raise ValueError
+
+    level = []
+    jsonLevel['levels']
+    for exp in jsonLevel['levels']:
+        if exp["experience"] <= experiencia:
+            level.append(exp['level'])
+        if experiencia < 0: 
+            raise ValueError()
+    return level[-1]
 '   '
 
 
@@ -308,17 +309,16 @@ class EspeciePokemon:
 Retorne True se um treinador com esse nome foi criado e False em caso contrário (já existia).
 """
 def cadastrar_treinador(nome):
-    if nome == "": raise TreinadorNaoCadastradoException
-    url = f"http://127.0.0.1:9000/treinador/{nome}"
-    url2 = f"http://127.0.0.1:9000/treinador"
-    request = requests.put(url)
-    if request.status_code != 202 or request.status_code != 303: raise TreinadorNaoCadastradoException
-    requestGet = requests.get(url2)
-    nomeTreinador = requestGet.json()
-    if nome in nomeTreinador:
+    if nome == "": TreinadorNaoCadastradoException()
+    
+    treinador = requests.get(f"{site_treinador}/treinador", timeout=limite)
+
+    if nome in treinador.json():
+        return False
+
+    resposta = requests.put(f"{site_treinador}/treinador/{nome}", timeout=limite)
+    if resposta.status_code == 202:
         return True
-    else:
-        False
 
 """
 Vamos precisar desta classe logo abaixo.
@@ -381,7 +381,10 @@ class Pokemon:
     """
     @property
     def nivel(self):
-        raise Exception("Não implementado.")
+        name = to_dict(self.__tipo)['nome']
+        level = nivel_do_pokemon(name, self.__experiencia)
+
+        return level
 
     """
     12. Imagine que você capturou dois pokémons do mesmo tipo. Para diferenciá-los, você dá nomes diferentes (apelidos) para eles.
@@ -390,7 +393,26 @@ class Pokemon:
     Certifique-se de que todos os dados são válidos.
     """
     def cadastrar(self):
-        raise Exception("Não implementado.")
+        if self.__nome_treinador == "": raise PokemonNaoCadastradoException()
+
+        if self.__apelido == "": raise PokemonNaoCadastradoException()
+
+        pokemon = {"tipo": to_dict(self.tipo)['nome'],
+                "experiencia": self.__experiencia,
+                "genero": to_dict(self.genero)}
+
+
+        resposta = requests.put(f"{site_treinador}/treinador/{self.__nome_treinador}/{self.__apelido}", json= pokemon,timeout=limite)
+
+
+        if resposta.status_code == 404: raise TreinadorNaoCadastradoException()
+
+        if resposta.status_code == 409: raise PokemonJaCadastradoException()
+
+        if resposta.status_code == 202:
+            return True
+        else:
+            raise PokemonNaoCadastradoException()
 
     """
     13. Dado um pokémon (o que é representado pelo self) acrescente-lhe a experiência ganha na API do treinador (e no própria instância também).
@@ -414,13 +436,29 @@ class Pokemon:
 15 Dado o nome de um treinador, localize-o na API do treinador e retorne um dicionário contendo como chaves, os apelidos de seus pokémons e como valores os nomes dos tipos deles.
 """
 def detalhar_treinador(nome_treinador):
-    raise Exception("Não implementado.")
+    if nome_treinador == "": TreinadorNaoCadastradoException()
+
+    resposta = requests.get(f"{site_treinador}/treinador/{nome_treinador}",timeout=limite)
+
+    if resposta.status_code == 404: raise TreinadorNaoCadastradoException()
+
+    if resposta.status_code == 202:
+        return True
+
 
 """
 16. Dado o nome de um treinador, localize-o na API do treinador e exclua-o, juntamente com todos os seus pokémons.
 """
 def excluir_treinador(nome_treinador):
-    raise Exception("Não implementado.")
+    if nome_treinador == "": TreinadorNaoCadastradoException()
+
+    resposta = requests.delete(f"{site_treinador}/treinador/{nome_treinador}",timeout=limite)
+
+    if resposta.status_code == 404: raise TreinadorNaoCadastradoException()
+
+    if resposta.status_code == 202:
+        return True
+
 
 """
 17. Dado o nome de um treinador e o apelido de um de seus pokémons, localize o pokémon na API do treinador e exclua-o.

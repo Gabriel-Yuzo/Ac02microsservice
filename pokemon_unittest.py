@@ -2,7 +2,7 @@ import unittest
 import requests
 from pokemon import *
 
-parar_no_primeiro_erro = True
+parar_no_primeiro_erro = False
 
 ultimo_pokemon = 850
 
